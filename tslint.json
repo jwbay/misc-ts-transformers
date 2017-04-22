@@ -20,6 +20,10 @@
         "indent": [
             true,
             "tabs"
+        ],
+        "no-bitwise": false,
+        "interface-name": [
+            "never-prefix"
         ]
     },
     "rulesDirectory": []

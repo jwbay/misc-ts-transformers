@@ -4,13 +4,12 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "Launch Program",
+			"name": "Debug Tests",
+			"sourceMaps": true,
 			"program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
 			"args": [
 				"${fileBasenameNoExtension}",
 				"--no-cache",
-				"--config",
-				"jest.json",
 				"-i"
 			],
 		}
