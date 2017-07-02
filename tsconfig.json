@@ -3,10 +3,7 @@
         "declaration": true,
         "forceConsistentCasingInFileNames": true,
         "lib": [
-            "dom",
-            "es5",
-            "es2015.core",
-            "es2015.collection"
+            "es2015"
         ],
         "module": "commonjs",
         "moduleResolution": "node",
@@ -22,6 +19,6 @@
         "inlineSourceMap": true,
         "strictNullChecks": true,
         "suppressImplicitAnyIndexErrors": true,
-        "target": "es5"
+        "target": "es6"
     }
 }

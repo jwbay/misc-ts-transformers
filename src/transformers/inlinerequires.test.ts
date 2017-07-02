@@ -33,7 +33,7 @@ testCase(`inlines requires for calls`, stripIndent`
 	}
 
 	someFunction()
-	not.sumFunction();
+	not.someFunction();
 
 	function foo(value) {
 		return someFunction()
@@ -85,6 +85,7 @@ testCase(`works with JSX elements`, stripIndent`
 			<div>
 				<Component prop={ 42 } />
 				<Local />
+				<Local prop={ Component } />
 			</div>
 		)
 	}
