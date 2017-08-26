@@ -11,8 +11,10 @@ testCase(`inlines requires for property access`, stripIndent`
 
 	function foo(value) {
 		return path.resolve('c')
+		return path.foo.bar.resolve('c')
+		return foo.path.bar.resolve('c')
 	}
-`)
+`, true)
 
 testCase(`inlines requires for aliases`, stripIndent`
 	const path = require('path')
@@ -24,7 +26,7 @@ testCase(`inlines requires for aliases`, stripIndent`
 		const alias = path
 		alias.resolve('b')
 	}
-`)
+`, true)
 
 testCase(`inlines requires for calls`, stripIndent`
 	const someFunction = require('some-function')
@@ -36,9 +38,10 @@ testCase(`inlines requires for calls`, stripIndent`
 	not.someFunction();
 
 	function foo(value) {
+		someFunction().do.something()
 		return someFunction()
 	}
-`)
+`, true)
 
 testCase(`inlines requires for initializers`, stripIndent`
 	const someFunction = require('some-function')
@@ -52,7 +55,23 @@ testCase(`inlines requires for initializers`, stripIndent`
 		private x = someFunction
 		protected y = someFunction()
 	}
-`)
+`, true)
+
+testCase(`inlines requires for ternaries`, stripIndent`
+const path = require('path')
+
+function foo() {
+	let x;
+	x = 0 ? 0 : 0;
+	x = 0 ? path : 0;
+	x = 0 ? 0 : path;
+	x = 0 ? path : path;
+	x = path ? path : 0;
+	x = path ? 0 : path;
+	x = path ? path : path;
+	x = path ? path : () => path;
+}
+`, true)
 
 testCase(`works with things named require`, stripIndent`
 	var require = 42
@@ -60,11 +79,11 @@ testCase(`works with things named require`, stripIndent`
 	function require(x: any) {
 		return x.require
 	}
-`)
+`, true)
 
 testCase(`doesn't break with empty source files`, stripIndent`
 
-`)
+`, true)
 
 testCase(`doesn't break when required modules are names elsewhere`, stripIndent`
 	const path = require('path')
@@ -74,7 +93,17 @@ testCase(`doesn't break when required modules are names elsewhere`, stripIndent`
 	}
 
 	x.path.toString()
-`)
+`, true)
+
+testCase(`works with call arguments`, stripIndent`
+	const path = require('path')
+
+	function foo() {}
+
+	foo(path)
+	foo(0 ? path : 1)
+	foo(0, path)
+`, true)
 
 testCase(`works with JSX elements`, stripIndent`
 	const Component = require('Component');
@@ -85,11 +114,13 @@ testCase(`works with JSX elements`, stripIndent`
 			<div>
 				<Component prop={ 42 } />
 				<Local />
+				{ Component }
+				{ true && Component }
 				<Local prop={ Component } />
 			</div>
 		)
 	}
-`)
+`, true)
 
 testCase(`element access`, stripIndent`
 	const KEY = require('key');

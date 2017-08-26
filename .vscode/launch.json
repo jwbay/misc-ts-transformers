@@ -5,7 +5,7 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Debug Tests",
-			"sourceMaps": true,
+			"sourceMaps": false,
 			"program": "${workspaceRoot}/node_modules/jest/bin/jest.js",
 			"args": [
 				"${fileBasenameNoExtension}",

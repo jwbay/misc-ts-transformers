@@ -1,82 +1,83 @@
 import {
-	collectVariableUsage,
 	isCallExpression,
 	isIdentifier,
 	isStringLiteral,
 	isVariableStatement,
-	VariableInfo,
 } from 'tsutils'
 import {
+	BinaryExpression,
+	CallExpression,
+	ConditionalExpression,
 	createCall,
 	createIdentifier,
 	createLiteral,
 	Identifier,
 	Node,
+	PropertyAccessExpression,
 	SourceFile,
+	Statement,
 	SyntaxKind,
 	TransformationContext,
+	updateBinary,
+	updateCall,
+	updateConditional,
+	updatePropertyAccess,
 	updateSourceFileNode,
-	visitLexicalEnvironment,
+	updateVariableDeclaration,
+	VariableDeclaration,
+	VariableStatement,
+	visitEachChild as _visitEachChild,
+	visitNodes,
+	VisitResult as _VisitResult,
 } from 'typescript'
 
-// get access to internals
-// tslint:disable-next-line:no-var-requires
-const ts = require('typescript')
-const updateNode: <T extends Node, U extends Node>(updated: T, original: U) => T = ts.updateNode
+// the visitEachChild in TS is not strict-null-checks friendly
+type VisitResult = _VisitResult<Node> | undefined
+const visitEachChild = _visitEachChild as (
+	node: Node,
+	visitor: (node: Node) => VisitResult,
+	context: TransformationContext,
+) => Node | undefined
 
 // TODO ensure import/require destructuring works
 
-export function inlineRequires(context: TransformationContext) {
-	const previousOnSubstituteNode = context.onSubstituteNode
-	const requires = new Map<Identifier, string>()
-	let references: Map<Identifier, VariableInfo>
+// make a visitor like visitTypeScript in ts transformer, visiting explicitly nodes that
+// can have identifiers as direct children. everything else gets visitEachChild
 
-	// step 1: gather top level require statements, record usages, and drop them
+export function inlineRequires(context: TransformationContext) {
+	const requiredModules = new Map<string, string>() // <IdentifierName, ModuleName>
+	let currentSourceFile: SourceFile
+	function nodeText(node: Node) {
+		return currentSourceFile.getFullText().substring(node.pos, node.end).trim()
+	}
+
 	function transformSourceFile(sourceFile: SourceFile) {
 		if (sourceFile.isDeclarationFile) {
 			return sourceFile
 		}
 
-		references = collectVariableUsage(sourceFile)
-		if (!references || references.size === 0) {
-			return sourceFile
-		}
-
+		currentSourceFile = sourceFile
 		return updateSourceFileNode(
 			sourceFile,
-			visitLexicalEnvironment(
-				sourceFile.statements,
-				visitSourceFileStatement,
-				context,
-				undefined /* start */,
-				context.getCompilerOptions().alwaysStrict,
-			),
+			visitNodes(sourceFile.statements, visitSourceFileStatement),
 		)
 	}
 
-	// step 2: replace references to the dropped requires with inline require calls
-	context.enableSubstitution(SyntaxKind.Identifier)
-	context.onSubstituteNode = (hint, node) => {
-		node = previousOnSubstituteNode(hint, node)
-
-		if (isIdentifier(node)) {
-			return visitIdentifer(node)
+	function visitSourceFileStatement(statement: Statement) {
+		if (isVariableStatement(statement)) {
+			return visitPossibleRequire(statement)
+		} else {
+			return visitEachChild(statement, visitNode, context)
 		}
-
-		return node
 	}
 
-	function visitSourceFileStatement(statement: Node) {
-		if (!statement || !isVariableStatement(statement)) {
-			return statement
-		}
-
+	function visitPossibleRequire(statement: VariableStatement) {
 		if (
 			!statement.declarationList ||
 			!statement.declarationList.declarations ||
 			!statement.declarationList.declarations.length
 		) {
-			return statement
+			return visitEachChild(statement, visitNode, context)
 		}
 
 		// doesn't currently handle const a = require('x'), b = require('y')
@@ -89,7 +90,7 @@ export function inlineRequires(context: TransformationContext) {
 			!(initializer.expression.text === 'require') ||
 			!(isStringLiteral(initializer.arguments[0]))
 		) {
-			return statement
+			return visitEachChild(statement, visitNode, context)
 		}
 
 		const argument = initializer.arguments[0]
@@ -98,41 +99,117 @@ export function inlineRequires(context: TransformationContext) {
 			!isStringLiteral(argument) ||
 			!isIdentifier(name)
 		) {
-			return statement
+			return visitEachChild(statement, visitNode, context)
 		}
 
-		requires.set(name, argument.text)
+		requiredModules.set(name.text, argument.text)
 
 		// drop the statement from the source file
-		return null as any
+		return undefined as any
 	}
 
-	function visitIdentifer(node: Identifier) {
-		const moduleId = findModuleIdForReference(node)
+	function visitNode(node: Node): VisitResult {
+		// SyntaxKind
+		// nodeText
+		// debugger
 
-		if (!moduleId) {
-			return node
+		// parent syntax kinds that can have identifiers as children
+		// subject to inline require replacements
+		switch (node.kind) {
+			case SyntaxKind.VariableDeclaration:
+				return visitVariableDeclaration(node as VariableDeclaration)
+			case SyntaxKind.PropertyAccessExpression:
+				return visitPropertyAccess(node as PropertyAccessExpression)
+			case SyntaxKind.CallExpression:
+				return visitCallExpression(node as CallExpression)
+			case SyntaxKind.BinaryExpression:
+				return visitBinaryExpression(node as BinaryExpression)
+			case SyntaxKind.ConditionalExpression:
+				return visitConditionalExpression(node as ConditionalExpression)
+
+			default:
+				return visitEachChild(node, visitNode, context)
 		}
+	}
 
-		const replacementRequire = createCall(
+	function visitVariableDeclaration(node: VariableDeclaration) {
+		if (node.initializer && isIdentifier(node.initializer) && requiredModules.get(node.initializer.text)) {
+			return updateVariableDeclaration(node, node.name, node.type, createRequireFrom(node.initializer))
+		}
+		return visitEachChild(node, visitNode, context)
+	}
+
+	function visitPropertyAccess(node: PropertyAccessExpression) {
+		if (isIdentifier(node.expression) && requiredModules.get(node.expression.text)) {
+			return updatePropertyAccess(node, createRequireFrom(node.expression), node.name)
+		}
+		return visitEachChild(node, visitNode, context)
+	}
+
+	function visitCallExpression(node: CallExpression) {
+		const shouldTransformExpression =
+			isIdentifier(node.expression) &&
+			!!requiredModules.get(node.expression.text)
+
+		const expression = shouldTransformExpression
+			? createRequireFrom(node.expression as Identifier)
+			: visitNode(node.expression) as any
+
+		const args = visitNodes(node.arguments, arg => {
+			if (isIdentifier(arg) && requiredModules.get(arg.text)) {
+				return createRequireFrom(arg)
+			}
+			return visitNode(arg)!
+		})
+
+		return updateCall(
+			node,
+			expression,
+			node.typeArguments,
+			args,
+		)
+	}
+
+	function visitBinaryExpression(node: BinaryExpression) {
+		if (isIdentifier(node.right) && requiredModules.get(node.right.text)) {
+			return updateBinary(
+				node,
+				node.left,
+				createRequireFrom(node.right),
+				node.operatorToken,
+			)
+		}
+		return visitEachChild(node, visitNode, context)
+	}
+
+	function visitConditionalExpression(node: ConditionalExpression) {
+		const replaceCondition = isIdentifier(node.condition) &&
+			requiredModules.get(node.condition.text) &&
+			node.condition
+		const replaceWhenTrue = isIdentifier(node.whenTrue) &&
+			requiredModules.get(node.whenTrue.text) &&
+			node.whenTrue
+		const replaceWhenFalse = isIdentifier(node.whenFalse) &&
+			requiredModules.get(node.whenFalse.text) &&
+			node.whenFalse
+		if (replaceCondition || replaceWhenTrue || replaceWhenFalse) {
+			return updateConditional(
+				node,
+				replaceCondition ? createRequireFrom(replaceCondition) : node.condition,
+				replaceWhenTrue ? createRequireFrom(replaceWhenTrue) : node.whenTrue,
+				replaceWhenFalse ? createRequireFrom(replaceWhenFalse) : node.whenFalse,
+			)
+		}
+		return visitEachChild(node, visitNode, context)
+	}
+
+	function createRequireFrom({ text }: Identifier) {
+		const moduleName = requiredModules.get(text)!
+		return createCall(
 			createIdentifier('require'),
 			undefined /* type arguments */,
-			[toStringLiteral(moduleId)],
+			[toStringLiteral(moduleName)],
 		)
-
-		return updateNode(replacementRequire, node)
-	}
-
-	function findModuleIdForReference(node: Identifier) {
-		for (const [declaration, usages] of references) {
-			for (const { location } of usages.uses) {
-				if (location === node && requires.has(declaration)) {
-					return requires.get(declaration)
-				}
-			}
-		}
-
-		return undefined
 	}
 
 	function toStringLiteral(moduleId: string) {

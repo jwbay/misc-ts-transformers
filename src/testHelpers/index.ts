@@ -1,4 +1,5 @@
 import { stripIndent } from 'common-tags'
+import * as fs from 'fs'
 import { SourceMapConsumer } from 'source-map'
 import {
 	JsxEmit,
@@ -24,6 +25,7 @@ export function createAsserter(transformer: FileTransformer) {
 function transform(source: string, transformer: FileTransformer) {
 	const { outputText, sourceMapText, diagnostics } = transpileModule(source, {
 		compilerOptions: {
+			inlineSources: true,
 			jsx: JsxEmit.React,
 			module: ModuleKind.CommonJS,
 			newLine: NewLineKind.LineFeed,
@@ -47,6 +49,12 @@ function transform(source: string, transformer: FileTransformer) {
 		})
 
 		throw new Error('Syntax error')
+	}
+
+	// drop these into https://sokra.github.io/source-map-visualization/#custom
+	if (false as true) {
+		fs.writeFileSync('module.js', outputText, { encoding: 'utf8' })
+		fs.writeFileSync('module.js.map', sourceMapText, { encoding: 'utf8' })
 	}
 
 	return `
