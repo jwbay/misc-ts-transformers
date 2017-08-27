@@ -356,6 +356,46 @@ foo(0, require('path'));
 }"
 `;
 
+exports[`works with returns 1`] = `
+"
+const path = require('path')
+
+function foo() {
+	if (false) {
+		return path;
+	}
+
+	if (false) {
+		return () => path;
+	}
+
+	return [path, () => path]
+}
+>>>>>>>> transforms to >>>>>>>
+function foo() {
+    if (false) {
+        return require('path');
+    }
+    if (false) {
+        return function () { return require('path'); };
+    }
+    return [path, function () { return require('path'); }];
+}
+
+======= with source map ======
+{
+  line 1: [1,0 => 3,0],
+  line 2: [2,4 => 4,1], [2,6 => 4,3], [2,7 => 4,4], [2,8 => 4,5], [2,13 => 4,10], [2,14 => 4,11], [2,15 => 4,12], [2,16 => 4,13],
+  line 3: [3,8 => 5,2], [3,14 => 5,8], [3,31 => 5,14],
+  line 4: [4,4 => 6,1], [4,5 => 6,2],
+  line 5: [5,4 => 8,1], [5,6 => 8,3], [5,7 => 8,4], [5,8 => 8,5], [5,13 => 8,10], [5,14 => 8,11], [5,15 => 8,12], [5,16 => 8,13],
+  line 6: [6,8 => 9,2], [6,14 => 9,8], [6,15 => 9,9], [6,29 => 9,15], [6,53 => 9,15], [6,54 => 9,19], [6,55 => 9,20],
+  line 7: [7,4 => 10,1], [7,5 => 10,2],
+  line 8: [8,4 => 12,1], [8,10 => 12,7], [8,11 => 12,8], [8,12 => 12,9], [8,16 => 12,13], [8,18 => 12,15], [8,32 => 12,21], [8,56 => 12,21], [8,57 => 12,25], [8,58 => 12,26], [8,59 => 12,26],
+  line 9: [9,0 => 13,0], [9,1 => 13,1]
+}"
+`;
+
 exports[`works with things named require 1`] = `
 "
 var require = 42

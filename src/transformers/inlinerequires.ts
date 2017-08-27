@@ -14,6 +14,7 @@ import {
 	Identifier,
 	Node,
 	PropertyAccessExpression,
+	ReturnStatement,
 	SourceFile,
 	Statement,
 	SyntaxKind,
@@ -22,6 +23,7 @@ import {
 	updateCall,
 	updateConditional,
 	updatePropertyAccess,
+	updateReturn,
 	updateSourceFileNode,
 	updateVariableDeclaration,
 	VariableDeclaration,
@@ -126,6 +128,8 @@ export function inlineRequires(context: TransformationContext) {
 				return visitBinaryExpression(node as BinaryExpression)
 			case SyntaxKind.ConditionalExpression:
 				return visitConditionalExpression(node as ConditionalExpression)
+			case SyntaxKind.ReturnStatement:
+				return visitReturnStatement(node as ReturnStatement)
 
 			default:
 				return visitEachChild(node, visitNode, context)
@@ -199,6 +203,13 @@ export function inlineRequires(context: TransformationContext) {
 				replaceWhenTrue ? createRequireFrom(replaceWhenTrue) : node.whenTrue,
 				replaceWhenFalse ? createRequireFrom(replaceWhenFalse) : node.whenFalse,
 			)
+		}
+		return visitEachChild(node, visitNode, context)
+	}
+
+	function visitReturnStatement(node: ReturnStatement) {
+		if (node.expression && isIdentifier(node.expression) && requiredModules.get(node.expression.text)) {
+			return updateReturn(node, createRequireFrom(node.expression))
 		}
 		return visitEachChild(node, visitNode, context)
 	}

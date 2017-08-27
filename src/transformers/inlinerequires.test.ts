@@ -105,6 +105,22 @@ testCase(`works with call arguments`, stripIndent`
 	foo(0, path)
 `, true)
 
+testCase(`works with returns`, stripIndent`
+	const path = require('path')
+
+	function foo() {
+		if (false) {
+			return path;
+		}
+
+		if (false) {
+			return () => path;
+		}
+
+		return [path, () => path]
+	}
+`, true)
+
 testCase(`works with JSX elements`, stripIndent`
 	const Component = require('Component');
 	const Local = (props) => <div/>;
