@@ -15,6 +15,7 @@ import {
 	Identifier,
 	Node,
 	PropertyAccessExpression,
+	PropertyAssignment,
 	ReturnStatement,
 	SourceFile,
 	Statement,
@@ -25,6 +26,7 @@ import {
 	updateCall,
 	updateConditional,
 	updatePropertyAccess,
+	updatePropertyAssignment,
 	updateReturn,
 	updateSourceFileNode,
 	updateVariableDeclaration,
@@ -134,6 +136,8 @@ export function inlineRequires(context: TransformationContext) {
 				return visitReturnStatement(node as ReturnStatement)
 			case SyntaxKind.ArrayLiteralExpression:
 				return visitArrayLiteralExpression(node as ArrayLiteralExpression)
+			case SyntaxKind.PropertyAssignment:
+				return visitPropertyAssignment(node as PropertyAssignment)
 
 			default:
 				return visitEachChild(node, visitNode, context)
@@ -228,6 +232,13 @@ export function inlineRequires(context: TransformationContext) {
 				return visitNode(arg)!
 			}),
 		)
+	}
+
+	function visitPropertyAssignment(node: PropertyAssignment) {
+		if (node.initializer && isIdentifier(node.initializer) && requiredModules.get(node.initializer.text)) {
+			return updatePropertyAssignment(node, node.name, createRequireFrom(node.initializer))
+		}
+		return visitEachChild(node, visitNode, context)
 	}
 
 	function createRequireFrom({ text }: Identifier) {

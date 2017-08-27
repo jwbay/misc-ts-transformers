@@ -69,20 +69,32 @@ testCase(`inlines requires for arrays`, stripIndent`
 	}
 `, true)
 
-testCase(`inlines requires for ternaries`, stripIndent`
-const path = require('path')
+testCase(`inlines requires for objects`, stripIndent`
+	const path = require('path')
 
-function foo() {
-	let x;
-	x = 0 ? 0 : 0;
-	x = 0 ? path : 0;
-	x = 0 ? 0 : path;
-	x = 0 ? path : path;
-	x = path ? path : 0;
-	x = path ? 0 : path;
-	x = path ? path : path;
-	x = path ? path : () => path;
-}
+	function foo(value) {
+		let x;
+		x = { a: 0 };
+		x = { a: path };
+		x = { a: [path] };
+		x = { a: 0, b: path };
+	}
+`, true)
+
+testCase(`inlines requires for ternaries`, stripIndent`
+	const path = require('path')
+
+	function foo() {
+		let x;
+		x = 0 ? 0 : 0;
+		x = 0 ? path : 0;
+		x = 0 ? 0 : path;
+		x = 0 ? path : path;
+		x = path ? path : 0;
+		x = path ? 0 : path;
+		x = path ? path : path;
+		x = path ? path : () => path;
+	}
 `, true)
 
 testCase(`works with things named require`, stripIndent`
