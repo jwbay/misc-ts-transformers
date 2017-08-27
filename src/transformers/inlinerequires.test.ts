@@ -194,3 +194,17 @@ testCase(`should not transform declarations`, stripIndent`
 	}
 	function foo(FOO: any) {}
 `)
+
+testCase(`works with ES2015 import syntax`, stripIndent`
+import * as path from 'path'
+import { a, b } from 'module'
+
+const x = a
+path.resolve()
+
+function foo() {
+	path.resolve()
+	b.go()
+	return () => path.relative
+}
+`)

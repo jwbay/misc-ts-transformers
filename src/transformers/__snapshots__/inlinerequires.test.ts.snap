@@ -369,6 +369,42 @@ function foo(FOO) { }
 }"
 `;
 
+exports[`works with ES2015 import syntax 1`] = `
+"
+import * as path from 'path'
+import { a, b } from 'module'
+
+const x = a
+path.resolve()
+
+function foo() {
+	path.resolve()
+	b.go()
+	return () => path.relative
+}
+>>>>>>>> transforms to >>>>>>>
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
+var x = module_1.a;
+require('path').resolve();
+function foo() {
+    require('path').resolve();
+    module_1.b.go();
+    return function () { return require('path').relative; };
+}
+
+======= with source map ======
+{
+  line 3: [3,0 => 4,0], [3,4 => 4,6], [3,5 => 4,7], [3,8 => 4,10], [3,18 => 4,11], [3,19 => 4,11],
+  line 4: [4,0 => 5,0], [4,16 => 5,5], [4,23 => 5,12], [4,25 => 5,14], [4,26 => 5,14],
+  line 5: [5,0 => 7,0],
+  line 6: [6,4 => 8,1], [6,20 => 8,6], [6,27 => 8,13], [6,29 => 8,15], [6,30 => 8,15],
+  line 7: [7,4 => 9,1], [7,14 => 9,2], [7,15 => 9,3], [7,17 => 9,5], [7,19 => 9,7], [7,20 => 9,7],
+  line 8: [8,4 => 10,1], [8,10 => 10,7], [8,11 => 10,8], [8,25 => 10,14], [8,32 => 10,14], [8,48 => 10,19], [8,56 => 10,27], [8,58 => 10,14], [8,59 => 10,27], [8,60 => 10,27],
+  line 9: [9,0 => 11,0], [9,1 => 11,1]
+}"
+`;
+
 exports[`works with JSX elements 1`] = `
 "
 const Component = require('Component');
