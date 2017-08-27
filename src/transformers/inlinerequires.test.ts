@@ -14,7 +14,7 @@ testCase(`inlines requires for property access`, stripIndent`
 		return path.foo.bar.resolve('c')
 		return foo.path.bar.resolve('c')
 	}
-`, true)
+`)
 
 testCase(`inlines requires for aliases`, stripIndent`
 	const path = require('path')
@@ -26,7 +26,7 @@ testCase(`inlines requires for aliases`, stripIndent`
 		const alias = path
 		alias.resolve('b')
 	}
-`, true)
+`)
 
 testCase(`inlines requires for calls`, stripIndent`
 	const someFunction = require('some-function')
@@ -41,7 +41,7 @@ testCase(`inlines requires for calls`, stripIndent`
 		someFunction().do.something()
 		return someFunction()
 	}
-`, true)
+`)
 
 testCase(`inlines requires for initializers`, stripIndent`
 	const someFunction = require('some-function')
@@ -55,7 +55,7 @@ testCase(`inlines requires for initializers`, stripIndent`
 		private x = someFunction
 		protected y = someFunction()
 	}
-`, true)
+`)
 
 testCase(`inlines requires for arrays`, stripIndent`
 	const path = require('path')
@@ -67,7 +67,7 @@ testCase(`inlines requires for arrays`, stripIndent`
 		x = [0, path];
 		x = [0, () => path]
 	}
-`, true)
+`)
 
 testCase(`inlines requires for objects`, stripIndent`
 	const path = require('path')
@@ -79,7 +79,7 @@ testCase(`inlines requires for objects`, stripIndent`
 		x = { a: [path] };
 		x = { a: 0, b: path };
 	}
-`, true)
+`)
 
 testCase(`inlines requires for ternaries`, stripIndent`
 	const path = require('path')
@@ -95,7 +95,7 @@ testCase(`inlines requires for ternaries`, stripIndent`
 		x = path ? path : path;
 		x = path ? path : () => path;
 	}
-`, true)
+`)
 
 testCase(`works with things named require`, stripIndent`
 	var require = 42
@@ -103,11 +103,11 @@ testCase(`works with things named require`, stripIndent`
 	function require(x: any) {
 		return x.require
 	}
-`, true)
+`)
 
 testCase(`doesn't break with empty source files`, stripIndent`
 
-`, true)
+`)
 
 testCase(`doesn't break when required modules are names elsewhere`, stripIndent`
 	const path = require('path')
@@ -117,7 +117,7 @@ testCase(`doesn't break when required modules are names elsewhere`, stripIndent`
 	}
 
 	x.path.toString()
-`, true)
+`)
 
 testCase(`works with call arguments`, stripIndent`
 	const path = require('path')
@@ -127,7 +127,7 @@ testCase(`works with call arguments`, stripIndent`
 	foo(path)
 	foo(0 ? path : 1)
 	foo(0, path)
-`, true)
+`)
 
 testCase(`works with returns`, stripIndent`
 	const path = require('path')
@@ -143,7 +143,7 @@ testCase(`works with returns`, stripIndent`
 
 		return [path, () => path]
 	}
-`, true)
+`)
 
 testCase(`works with JSX elements`, stripIndent`
 	const Component = require('Component');
@@ -160,7 +160,7 @@ testCase(`works with JSX elements`, stripIndent`
 			</div>
 		)
 	}
-`, true)
+`)
 
 testCase(`element access`, stripIndent`
 	const KEY = require('key');
@@ -181,12 +181,16 @@ testCase(`element access`, stripIndent`
 		)
 	}
 
-`, true)
+`)
 
-testCase(`functions`, stripIndent`
+testCase(`should not transform declarations`, stripIndent`
 	const FOO = require('foo');
 
-	function FOO() {}
-	function foo(FOO) {}
+	function FOO() {
+		let FOO;
+	}
+	function foo(FOO) {
+		let { x: FOO } = { x: 42 }
+	}
 	function foo(FOO: any) {}
 `)

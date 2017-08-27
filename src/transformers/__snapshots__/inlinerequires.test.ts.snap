@@ -82,26 +82,6 @@ var _a;
 }"
 `;
 
-exports[`functions 1`] = `
-"
-const FOO = require('foo');
-
-function FOO() {}
-function foo(FOO) {}
-function foo(FOO: any) {}
->>>>>>>> transforms to >>>>>>>
-function FOO() { }
-function foo(FOO) { }
-function foo(FOO) { }
-
-======= with source map ======
-{
-  line 1: [1,0 => 3,0], [1,17 => 3,16], [1,18 => 3,17],
-  line 2: [2,0 => 4,0], [2,13 => 4,13], [2,16 => 4,16], [2,20 => 4,19], [2,21 => 4,20],
-  line 3: [3,0 => 5,0], [3,13 => 5,13], [3,16 => 5,21], [3,20 => 5,24], [3,21 => 5,25]
-}"
-`;
-
 exports[`inlines requires for aliases 1`] = `
 "
 const path = require('path')
@@ -354,6 +334,38 @@ function foo() {
   line 9: [9,4 => 11,1], [9,5 => 11,2], [9,8 => 11,5], [9,59 => 11,23], [9,60 => 11,24],
   line 10: [10,4 => 12,1], [10,5 => 12,2], [10,8 => 12,5], [10,44 => 12,19], [10,58 => 12,25], [10,65 => 12,25], [10,69 => 12,29], [10,71 => 12,25], [10,72 => 12,29], [10,73 => 12,30],
   line 11: [11,0 => 13,0], [11,1 => 13,1]
+}"
+`;
+
+exports[`should not transform declarations 1`] = `
+"
+const FOO = require('foo');
+
+function FOO() {
+	let FOO;
+}
+function foo(FOO) {
+	let { x: FOO } = { x: 42 }
+}
+function foo(FOO: any) {}
+>>>>>>>> transforms to >>>>>>>
+function FOO() {
+    var FOO;
+}
+function foo(FOO) {
+    var FOO = { x: 42 }.x;
+}
+function foo(FOO) { }
+
+======= with source map ======
+{
+  line 1: [1,0 => 3,0],
+  line 2: [2,4 => 4,1], [2,8 => 4,5], [2,11 => 4,8], [2,12 => 4,9],
+  line 3: [3,0 => 5,0], [3,1 => 5,1],
+  line 4: [4,0 => 6,0], [4,13 => 6,13], [4,16 => 6,16],
+  line 5: [5,4 => 7,7], [5,8 => 7,7], [5,25 => 7,13], [5,26 => 7,27],
+  line 6: [6,0 => 8,0], [6,1 => 8,1],
+  line 7: [7,0 => 9,0], [7,13 => 9,13], [7,16 => 9,21], [7,20 => 9,24], [7,21 => 9,25]
 }"
 `;
 
