@@ -207,4 +207,4 @@ function foo() {
 	b.go()
 	return () => path.relative
 }
-`)
+`, true)

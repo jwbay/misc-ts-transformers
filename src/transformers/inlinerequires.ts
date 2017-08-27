@@ -111,13 +111,13 @@ export function inlineRequires(context: TransformationContext) {
 		requiredModules.set(name.text, argument.text)
 
 		// drop the statement from the source file
-		return undefined as any
+		return statement// undefined as any
 	}
 
 	function visitNode(node: Node): VisitResult {
-		// SyntaxKind
-		// nodeText
-		// debugger
+		SyntaxKind
+		nodeText
+		debugger
 
 		// parent syntax kinds that can have identifiers as children
 		// subject to inline require replacements
