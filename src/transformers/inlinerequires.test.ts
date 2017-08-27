@@ -181,7 +181,7 @@ testCase(`element access`, stripIndent`
 		)
 	}
 
-`)
+`, true)
 
 testCase(`functions`, stripIndent`
 	const FOO = require('foo');
