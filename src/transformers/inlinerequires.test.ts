@@ -57,6 +57,18 @@ testCase(`inlines requires for initializers`, stripIndent`
 	}
 `, true)
 
+testCase(`inlines requires for arrays`, stripIndent`
+	const path = require('path')
+
+	function foo(value) {
+		let x;
+		x = [];
+		x = [path];
+		x = [0, path];
+		x = [0, () => path]
+	}
+`, true)
+
 testCase(`inlines requires for ternaries`, stripIndent`
 const path = require('path')
 

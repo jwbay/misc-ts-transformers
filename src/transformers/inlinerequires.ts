@@ -5,6 +5,7 @@ import {
 	isVariableStatement,
 } from 'tsutils'
 import {
+	ArrayLiteralExpression,
 	BinaryExpression,
 	CallExpression,
 	ConditionalExpression,
@@ -19,6 +20,7 @@ import {
 	Statement,
 	SyntaxKind,
 	TransformationContext,
+	updateArrayLiteral,
 	updateBinary,
 	updateCall,
 	updateConditional,
@@ -130,6 +132,8 @@ export function inlineRequires(context: TransformationContext) {
 				return visitConditionalExpression(node as ConditionalExpression)
 			case SyntaxKind.ReturnStatement:
 				return visitReturnStatement(node as ReturnStatement)
+			case SyntaxKind.ArrayLiteralExpression:
+				return visitArrayLiteralExpression(node as ArrayLiteralExpression)
 
 			default:
 				return visitEachChild(node, visitNode, context)
@@ -212,6 +216,18 @@ export function inlineRequires(context: TransformationContext) {
 			return updateReturn(node, createRequireFrom(node.expression))
 		}
 		return visitEachChild(node, visitNode, context)
+	}
+
+	function visitArrayLiteralExpression(node: ArrayLiteralExpression) {
+		return updateArrayLiteral(
+			node,
+			visitNodes(node.elements, arg => {
+				if (isIdentifier(arg) && requiredModules.get(arg.text)) {
+					return createRequireFrom(arg)
+				}
+				return visitNode(arg)!
+			}),
+		)
 	}
 
 	function createRequireFrom({ text }: Identifier) {
